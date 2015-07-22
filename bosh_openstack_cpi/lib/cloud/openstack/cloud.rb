@@ -76,12 +76,14 @@ module Bosh::OpenStackCloud
       }
 
       begin
+        connection_error = nil
         Bosh::Common.retryable(connect_retry_options) do |tries, error|
-          @logger.error("Failed #{tries} times, last failure due to: #{error.inspect}") unless error.nil?
+          connection_error = error
+          @logger.error("Failed #{tries} times, last failure due to: #{connection_error.inspect}") unless connection_error.nil?
           @openstack = Fog::Compute.new(openstack_params)
         end
       rescue Bosh::Common::RetryCountExceeded, Excon::Errors::ClientError, Excon::Errors::ServerError
-        cloud_error('Unable to connect to the OpenStack Compute API. Check task debug log for details.')
+        cloud_error("Unable to connect to the OpenStack Compute API due to connection error #{connection_error.inspect}. Check task debug log for details.")
       end
 
       @az_provider = Bosh::OpenStackCloud::AvailabilityZoneProvider.new(
@@ -100,12 +102,14 @@ module Bosh::OpenStackCloud
       }
 
       begin
+        connection_error = nil
         Bosh::Common.retryable(connect_retry_options) do |tries, error|
+          connection_error = error
           @logger.error("Failed #{tries} times, last failure due to: #{error.inspect}") unless error.nil?
           @glance = Fog::Image.new(glance_params)
         end
       rescue Bosh::Common::RetryCountExceeded, Excon::Errors::ClientError, Excon::Errors::ServerError
-        cloud_error('Unable to connect to the OpenStack Image Service API. Check task debug log for details.')
+        cloud_error("Unable to connect to the OpenStack Image Service API due to connection error #{connection_error.inspect}. Check task debug log for details.")
       end
 
       volume_params = {
@@ -120,12 +124,14 @@ module Bosh::OpenStackCloud
       }
 
       begin
+        connection_error = nil
         Bosh::Common.retryable(connect_retry_options) do |tries, error|
-          @logger.error("Failed #{tries} times, last failure due to: #{error.inspect}") unless error.nil?
+          connection_error = error
+          @logger.error("Failed #{tries} times, last failure due to: #{connection_error.inspect}") unless connection_error.nil?
           @volume = Fog::Volume.new(volume_params)
         end
       rescue Bosh::Common::RetryCountExceeded, Excon::Errors::ClientError, Excon::Errors::ServerError
-        cloud_error('Unable to connect to the OpenStack Volume API. Check task debug log for details.')
+        cloud_error("Unable to connect to the OpenStack Volume API due to connection error #{connection_error.inspect}. Check task debug log for details.")
       end
 
       @metadata_lock = Mutex.new
