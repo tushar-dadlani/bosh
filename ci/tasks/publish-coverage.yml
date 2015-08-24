@@ -4,10 +4,10 @@ platform: linux
 image: docker:///bosh/main
 
 inputs:
-  - name: bosh-src
+  - name: bosh
 
 run:
-  path: bosh-src/ci/tasks/publish-coverage.sh
+  path: bosh/ci/tasks/publish-coverage.sh
 
 params:
   CODECLIMATE_REPO_TOKEN: replace-me

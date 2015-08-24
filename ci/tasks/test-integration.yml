@@ -4,10 +4,10 @@ platform: linux
 image: docker:///bosh/main
 
 inputs:
-- name: bosh-src
+- name: bosh
 
 run:
-  path: bosh-src/ci/tasks/test-integration.sh
+  path: bosh/ci/tasks/test-integration.sh
 
 params:
   RUBY_VERSION: replace-me

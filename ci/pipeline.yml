@@ -3,49 +3,48 @@ groups:
   - name: bosh
     jobs:
       - start-job
-      - unit-1.9
-      - unit-2.1
-      - integration-1.9-postgres
-      - integration-2.1-mysql
-      - integration-2.1-postgres
-      - publish-coverage
-      - promote-candidate
+      - unit
+      - unit-cli-1.9
+      - unit-cli-2.1
+      - integration-mysql
+      - integration-postgres
+      - integration-cli-1.9
+      - integration-cli-2.1
+      # - publish-coverage
+      # - promote-candidate
 
   - name: 1.9
     jobs:
       - start-job
-      - unit-1.9
-      - integration-1.9-postgres
-      - publish-coverage
-      - promote-candidate
+      - unit-cli-1.9
+      - integration-cli-1.9
+      # - publish-coverage
+      # - promote-candidate
 
   - name: 2.1
     jobs:
       - start-job
-      - unit-2.1
-      - integration-2.1-mysql
-      - integration-2.1-postgres
-      - publish-coverage
-      - promote-candidate
+      - unit
+      - unit-cli-2.1
+      - integration-cli-2.1
+      - integration-mysql
+      - integration-postgres
+      # - publish-coverage
+      # - promote-candidate
 
   - name: mysql
     jobs:
       - start-job
-      - unit-1.9
-      - unit-2.1
-      - integration-2.1-mysql
-      - publish-coverage
-      - promote-candidate
+      - integration-mysql
+      # - publish-coverage
+      # - promote-candidate
 
   - name: postgres
     jobs:
       - start-job
-      - unit-1.9
-      - unit-2.1
-      - integration-1.9-postgres
-      - integration-2.1-postgres
-      - publish-coverage
-      - promote-candidate
+      - integration-postgres
+      # - publish-coverage
+      # - promote-candidate
 
 jobs:
   - name: start-job
@@ -53,98 +52,121 @@ jobs:
     serial: true
     plan:
       - { get: interval-trigger, trigger: true }
-      - { get: bosh-src }
+      - { get: bosh }
+      - { get: bosh-cli }
 
-  - name: unit-1.9
+  - name: unit
     public: true
     serial: true
     plan:
-      - { get: bosh-src, trigger: true, passed: [start-job] }
+      - { get: bosh, resource: bosh, trigger: true, passed: [start-job] }
       - task: test
-        file: bosh-src/ci/tasks/test-unit.yml
+        file: bosh/ci/tasks/test-unit.yml
+        config:
+          params:
+            RUBY_VERSION: 2.1.6
+
+  - name: unit-cli-1.9
+    public: true
+    serial: true
+    plan:
+      - { get: bosh, resource: bosh-cli, trigger: true, passed: [start-job] }
+      - task: test
+        file: bosh/ci/tasks/test-unit.yml
         config:
           params:
             RUBY_VERSION: 1.9.3
 
-  - name: unit-2.1
+  - name: unit-cli-2.1
     public: true
     serial: true
     plan:
-      - { get: bosh-src, trigger: true, passed: [start-job] }
-
+      - { get: bosh, resource: bosh-cli, trigger: true, passed: [start-job] }
       - task: test
-        file: bosh-src/ci/tasks/test-unit.yml
+        file: bosh/ci/tasks/test-unit.yml
         config:
           params:
             RUBY_VERSION: 2.1.6
 
-  - name: integration-1.9-postgres
+  - name: integration-mysql
     public: true
     serial: true
     plan:
-      - { get: bosh-src, trigger: true, passed: [start-job] }
-
+      - { get: bosh, resource: bosh, trigger: true, passed: [start-job, unit] }
       - task: test
         privileged: true
-        file:  bosh-src/ci/tasks/test-integration.yml
+        file: bosh/ci/tasks/test-integration.yml
         config:
           params:
-            DB:           postgresql
+            DB: mysql
+            RUBY_VERSION: 2.1.6
+            NUM_GROUPS: 8
+
+  - name: integration-postgres
+    public: true
+    serial: true
+    plan:
+      - { get: bosh, resource: bosh, trigger: true, passed: [start-job, unit] }
+      - task: test
+        privileged: true
+        file: bosh/ci/tasks/test-integration.yml
+        config:
+          params:
+            DB: postgresql
+            RUBY_VERSION: 2.1.6
+            NUM_GROUPS: 8
+
+  - name: integration-cli-1.9
+    public: true
+    serial: true
+    plan:
+      - { get: bosh, resource: bosh-cli, trigger: true, passed: [start-job, unit-cli-1.9] }
+      - task: test
+        privileged: true
+        file:  bosh/ci/tasks/test-integration.yml
+        config:
+          params:
+            DB: postgresql
             RUBY_VERSION: 1.9.3
             NUM_GROUPS: 8
 
-  - name: integration-2.1-mysql
+  - name: integration-cli-2.1
     public: true
     serial: true
     plan:
-      - { get: bosh-src, trigger: true, passed: [start-job] }
-
+      - { get: bosh, resource: bosh-cli, trigger: true, passed: [start-job, unit-cli-2.1] }
       - task: test
         privileged: true
-        file: bosh-src/ci/tasks/test-integration.yml
+        file: bosh/ci/tasks/test-integration.yml
         config:
           params:
-            DB:           mysql
+            DB: postgresql
             RUBY_VERSION: 2.1.6
             NUM_GROUPS: 8
 
-  - name: integration-2.1-postgres
-    public: true
-    serial: true
-    plan:
-      - { get: bosh-src, trigger: true, passed: [start-job] }
-
-      - task: test
-        privileged: true
-        file: bosh-src/ci/tasks/test-integration.yml
-        config:
-          params:
-            DB:           postgresql
-            RUBY_VERSION: 2.1.6
-            NUM_GROUPS: 8
-
-  - name: publish-coverage
-    public: true
-    serial: true
-    plan:
-      - trigger: true
-        passed: [integration-2.1-mysql, integration-1.9-postgres, integration-2.1-postgres, unit-2.1, unit-1.9]
-        get: bosh-src
-      - task: publish
-        file: bosh-src/ci/tasks/publish-coverage.yml
-        config:
-          params:
-            CODECLIMATE_REPO_TOKEN: {{codeclimate_token}}
-
-  - name: promote-candidate
-    public: true
-    serial: true
-    plan:
-      - trigger: true
-        passed: [integration-2.1-mysql, integration-1.9-postgres, integration-2.1-postgres, unit-2.1, unit-1.9]
-        get: bosh-src
-
-      - {put: bosh-candidate, params: {repository: bosh-src}}
+  # - name: publish-coverage
+  #   public: true
+  #   serial: true
+  #   plan:
+  #     - trigger: true
+  #       passed: [unit, unit-cli-1.9, unit-cli-2.1, integration-mysql, integration-postgres, integration-cli-1.9, integration-cli-2.1]
+  #       get: bosh
+  #       resource: bosh
+  #     - task: publish
+  #       file: bosh/ci/tasks/publish-coverage.yml
+  #       config:
+  #         params:
+  #           CODECLIMATE_REPO_TOKEN: {{codeclimate_token}}
+  #
+  # - name: promote-candidate
+  #   public: true
+  #   serial: true
+  #   plan:
+  #     - trigger: true
+  #       passed: [unit, unit-cli-1.9, unit-cli-2.1, integration-mysql, integration-postgres, integration-cli-1.9, integration-cli-2.1]
+  #       get: bosh
+  #       resource: bosh
+  #     - { put: bosh-candidate, params: { repository: bosh } }
 
 resources:
   - name: interval-trigger
@@ -152,15 +174,23 @@ resources:
     source:
       interval: 45m # average build time for the integration tests
 
-  - name: bosh-src
+  - name: bosh
     type: git
     source:
       uri: https://github.com/cloudfoundry/bosh.git
-      branch: develop
+      branch: split
+      ignore_paths: ["spec"]
 
-  - name: bosh-candidate
+  - name: bosh-cli
     type: git
     source:
-      uri: git@github.com:cloudfoundry/bosh.git
-      branch: candidate
-      private_key: {{github_deployment_key__bosh}}
+      uri: https://github.com/cloudfoundry/bosh.git
+      branch: split
+      paths: ["spec"]
+
+  # - name: bosh-candidate
+  #   type: git
+  #   source:
+  #     uri: git@github.com:cloudfoundry/bosh.git
+  #     branch: candidate
+  #     private_key: {{github_deployment_key__bosh}}
