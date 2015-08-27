@@ -68,6 +68,30 @@ describe Bosh::Cli::Config do
     expect(cfg.deployment).to eq("/path/to/deploy/1")
   end
 
+
+  it "should save a deployment_name for each target" do
+    add_config({})
+    cfg = create_config
+    cfg.target = "localhost:1"
+    cfg.set_deployment_name("foo-deployment1")
+    cfg.save
+    cfg.target = "localhost:2"
+    cfg.set_deployment_name("foo-deployment2")
+    cfg.save
+
+    # Test that the file is written correctly.
+    yaml_file = load_yaml_file(@config, nil)
+    expect(yaml_file["deployment"].has_key?("localhost:1")).to be(true)
+    expect(yaml_file["deployment"].has_key?("localhost:2")).to be(true)
+    expect(yaml_file["deployment"]["localhost:1"]).to eq("foo-deployment1")
+    expect(yaml_file["deployment"]["localhost:2"]).to eq("foo-deployment2")
+
+    # Test that switching targets gives you the new deployment.
+    expect(cfg.deployment_name).to eq("foo-deployment2")
+    cfg.target = "localhost:1"
+    expect(cfg.deployment_name).to eq("foo-deployment1")
+  end
+
   it "returns nil when the deployments key exists but has no value" do
     add_config("target" => "localhost:8080", "deployment" => nil)
 

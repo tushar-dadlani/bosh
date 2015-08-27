@@ -23,14 +23,17 @@ describe Bosh::Cli::Command::Base do
   let(:target) { 'https://127.0.0.1:8080' }
 
   it 'can access configuration and respects options' do
-    add_config('target' => 'localhost:8080', 'target_name' => 'microbosh', 'deployment' => 'test')
+
+    add_config('target' => 'localhost:8080', 'target_name' => 'microbosh', 'deployment' => 'test', 'deployment_name' => 'foo-deployment')
 
     cmd = make
+    puts cmd.pretty_inspect
     expect(cmd.config).to be_a(Bosh::Cli::Config)
 
     expect(cmd.target).to eq('https://localhost:8080')
     expect(cmd.target_name).to eq('microbosh')
     expect(cmd.deployment).to eq('test')
+    expect(cmd.deployment_name).to eq('foo-deployment')
     expect(cmd.credentials).to be_nil
   end
 

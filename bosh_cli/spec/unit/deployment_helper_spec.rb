@@ -107,6 +107,21 @@ describe Bosh::Cli::DeploymentHelper do
       expect(manifest.hash['resource_pools'][1]['stemcell']['version']).to eq(22)
       expect(manifest.hash['resource_pools'][2]['stemcell']['version']).to eq(4.1)
     end
+
+
+    context 'run cli commands without deployment manifest' do
+      let(:deployment_name) { 'foo-deployment'}
+      it 'does not require a bosh deployment manifest to run a command' do
+        cmd = make_cmd
+        director = instance_double('Bosh::Cli::Client::Director', uuid: 'deadbeef')
+        allow(cmd).to receive(:director).and_return(director)
+        allow(cmd).to receive(:deployment_name).and_return(deployment_name)
+
+        cmd.prepare_deployment_manifest(deployment_name)
+
+        expect(cmd).to be_true
+      end
+    end
   end
 
   describe '#job_exists_in_deployment?' do

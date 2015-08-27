@@ -154,6 +154,19 @@ module Bosh::Cli
       end
     end
 
+    def deployment_name
+      return nil if target.nil?
+      if @config_file.has_key?("deployment_name")
+        if is_old_deployment_config?
+          set_deployment(@config_file["deployment_name"])
+          save
+        end
+        if @config_file["deployment_name"].is_a?(Hash)
+          return @config_file["deployment_name"][target]
+        end
+      end
+    end
+
     # Sets the deployment file for the current target. If the deployment is
     # the old deployment configuration, it will turn it into the format.
     #
@@ -165,6 +178,13 @@ module Bosh::Cli
       @config_file["deployment"] = {} if is_old_deployment_config?
       @config_file["deployment"] ||= {}
       @config_file["deployment"][target] = deployment_file_path
+    end
+
+    def set_deployment_name(deployment_name)
+      raise MissingTarget, "Must have a target set" if target.nil?
+      @config_file["deployment_name"] = {} if is_old_deployment_config?
+      @config_file["deployment_name"] ||= {}
+      @config_file["deployment_name"][target] = deployment_name
     end
 
     def target

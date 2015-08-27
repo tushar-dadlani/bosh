@@ -100,6 +100,10 @@ module Bosh::Cli
         options[:deployment] || config.deployment
       end
 
+      def deployment_name
+        options[:deployment_name] || config.deployment_name
+      end
+
       def credentials
         return @credentials if @credentials
 
